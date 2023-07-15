@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 
 	"basicapi/ent"
+	"basicapi/ent/article"
 	"basicapi/ent/user"
 	tool "basicapi/internal"
 )
@@ -22,6 +25,30 @@ type Server struct {
 	app *fiber.App
 
 	db *ent.Client
+}
+
+func Authorized(c *fiber.Ctx) error {
+	server := c.Locals("server").(*Server)
+
+	token, err := jwt.Parse(c.Get("Authorization"), func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(JWT_SECRET), nil
+	})
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).SendString(err.Error())
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		requestUser, err := server.db.User.Query().Where(user.UserID(claims["aud"].(string))).Only(c.Context())
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).SendString(err.Error())
+		}
+		c.Locals("user", requestUser)
+		return c.Next()
+	} else {
+		return c.Status(fiber.StatusUnauthorized).SendString("invalid token")
+	}
 }
 
 func main() {
@@ -39,6 +66,10 @@ func main() {
 	server.app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 	}))
+
+	server.app.Use(func(c *fiber.Ctx) {
+		c.Locals("server", &server)
+	})
 
 	server.app.Post("/account/register", func(ctx *fiber.Ctx) error {
 		request := new(RegisterRequest)
@@ -92,6 +123,41 @@ func main() {
 		}
 	})
 
+	server.app.Get("/articles", func(ctx *fiber.Ctx) error {
+		var err error
+		off := ctx.QueryInt("offset", 0)
+		if off == -1 || err != nil {
+			off = 0
+		}
+
+		fmt.Println(off)
+
+		articles, err := server.db.Article.Query().Order(article.ByID(sql.OrderDesc())).Offset(off).Limit(20).All(ctx.Context())
+		if err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		}
+
+		return ctx.Status(fiber.StatusOK).JSON(ArticleListResponse{
+			Articles: articles,
+		})
+	})
+
+	server.app.Post("/articles", Authorized, func(ctx *fiber.Ctx) error {
+		request := new(NewArticleRequest)
+		if err := ctx.BodyParser(&request); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		user := (ctx.Locals("user")).(*ent.User)
+		if article, err := server.db.Article.Create().SetTitle(request.Title).SetContent(request.Content).SetAuthor(user).Save(ctx.Context()); err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		} else {
+			return ctx.Status(fiber.StatusOK).JSON(NewArticleResponse{
+				Article: article,
+			})
+		}
+	})
+
 	server.app.Listen(":80")
 }
 
@@ -102,4 +168,17 @@ type RegisterRequest struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
+}
+
+type NewArticleRequest struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+type NewArticleResponse struct {
+	Article *ent.Article `json:"article"`
+}
+
+type ArticleListResponse struct {
+	Articles []*ent.Article `json:"articles"`
 }
