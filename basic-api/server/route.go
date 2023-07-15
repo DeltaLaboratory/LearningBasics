@@ -21,9 +21,9 @@ func (server *Server) route() {
 		authorized := articles.Group("")
 		authorized.Use(server.authorized)
 		{
-			articles.Post("/", server.createArticle)
-			articles.Get("/:id/comments", server.listComment)
-			articles.Post("/:id/comments", server.createComment)
+			authorized.Post("/", server.createArticle)
+			authorized.Get("/:id/comments", server.listComment)
+			authorized.Post("/:id/comments", server.createComment)
 		}
 	}
 }
