@@ -17,7 +17,7 @@ type Article struct {
 func (Article) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("title").NotEmpty(),
-		field.String("content").NotEmpty(),
+		field.String("content").NotEmpty().Sensitive(),
 
 		field.Time("created_at").Default(time.Now),
 	}

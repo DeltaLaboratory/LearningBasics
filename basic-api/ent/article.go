@@ -21,7 +21,7 @@ type Article struct {
 	// Title holds the value of the "title" field.
 	Title string `json:"title,omitempty"`
 	// Content holds the value of the "content" field.
-	Content string `json:"content,omitempty"`
+	Content string `json:"-"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -172,8 +172,7 @@ func (a *Article) String() string {
 	builder.WriteString("title=")
 	builder.WriteString(a.Title)
 	builder.WriteString(", ")
-	builder.WriteString("content=")
-	builder.WriteString(a.Content)
+	builder.WriteString("content=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(a.CreatedAt.Format(time.ANSIC))
