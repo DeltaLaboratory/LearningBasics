@@ -1,12 +1,15 @@
 package server
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/gofiber/fiber/v2"
 
 	"basicapi/ent"
 	"basicapi/ent/article"
 	"basicapi/ent/comment"
+	tool "basicapi/internal"
 )
 
 func (server *Server) listArticle(ctx *fiber.Ctx) error {
@@ -24,9 +27,31 @@ func (server *Server) listArticle(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(ArticleListResponse{
-		Articles: articles,
-	})
+	articleList := new(ArticleListResponse)
+	articleList.Articles = []ArticleEntry{}
+
+	for _, atcl := range articles {
+		author, err := atcl.QueryAuthor().Only(ctx.Context())
+		if err != nil {
+			articleList.Articles = append(articleList.Articles, ArticleEntry{
+				ID:      atcl.ID,
+				Title:   atcl.Title,
+				Content: tool.Cut(atcl.Content, 25),
+				Created: atcl.CreatedAt,
+				Author:  "Ghost",
+			})
+			continue
+		}
+		articleList.Articles = append(articleList.Articles, ArticleEntry{
+			ID:      atcl.ID,
+			Title:   atcl.Title,
+			Content: tool.Cut(atcl.Content, 25),
+			Created: atcl.CreatedAt,
+			Author:  author.UserID,
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(articleList)
 }
 
 func (server *Server) createArticle(ctx *fiber.Ctx) error {
@@ -64,8 +89,17 @@ func (server *Server) getArticle(ctx *fiber.Ctx) error {
 		}
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(GetArticleResponse{
-		Article: article,
+	author, err := article.QueryAuthor().Only(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(ArticleEntry{
+		ID:      article.ID,
+		Title:   article.Title,
+		Content: article.Content,
+		Created: article.CreatedAt,
+		Author:  author.UserID,
 	})
 }
 
@@ -126,12 +160,20 @@ type NewArticleRequest struct {
 	Content string `json:"content"`
 }
 
+type ArticleEntry struct {
+	ID      int       `json:"id"`
+	Title   string    `json:"title"`
+	Content string    `json:"content"`
+	Author  string    `json:"author"`
+	Created time.Time `json:"created"`
+}
+
 type NewArticleResponse struct {
 	Article *ent.Article `json:"article"`
 }
 
 type ArticleListResponse struct {
-	Articles []*ent.Article `json:"articles"`
+	Articles []ArticleEntry `json:"articles"`
 }
 
 type GetArticleResponse struct {

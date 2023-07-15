@@ -34,3 +34,10 @@ func Verify(password, hash []byte) (bool, error) {
 	}
 	return false, nil
 }
+
+func Cut(s string, n int) string {
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
+}

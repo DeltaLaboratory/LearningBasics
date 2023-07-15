@@ -14,7 +14,7 @@ var (
 		{Name: "title", Type: field.TypeString},
 		{Name: "content", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "user_articles", Type: field.TypeInt, Nullable: true},
+		{Name: "author_id", Type: field.TypeInt},
 	}
 	// ArticlesTable holds the schema information for the "articles" table.
 	ArticlesTable = &schema.Table{
@@ -26,7 +26,7 @@ var (
 				Symbol:     "articles_users_articles",
 				Columns:    []*schema.Column{ArticlesColumns[4]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}

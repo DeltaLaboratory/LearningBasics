@@ -1,15 +1,16 @@
 <script lang="ts">
     import {onMount} from "svelte";
     import {login} from "$lib/api";
+    import {goto} from "$app/navigation";
 
     let userId = "";
     let password = "";
 
-    let loginResult = "";
-
     async function _page_login() {
         try {
-            loginResult = await login(userId, password)
+            await login(userId, password)
+            alert(`Welcome ${userId}`)
+            await goto("/")
         } catch (e) {
             alert(e)
         }

@@ -48,17 +48,9 @@ func (ac *ArticleCreate) SetNillableCreatedAt(t *time.Time) *ArticleCreate {
 	return ac
 }
 
-// SetAuthorID sets the "author" edge to the User entity by ID.
-func (ac *ArticleCreate) SetAuthorID(id int) *ArticleCreate {
-	ac.mutation.SetAuthorID(id)
-	return ac
-}
-
-// SetNillableAuthorID sets the "author" edge to the User entity by ID if the given value is not nil.
-func (ac *ArticleCreate) SetNillableAuthorID(id *int) *ArticleCreate {
-	if id != nil {
-		ac = ac.SetAuthorID(*id)
-	}
+// SetAuthorID sets the "author_id" field.
+func (ac *ArticleCreate) SetAuthorID(i int) *ArticleCreate {
+	ac.mutation.SetAuthorID(i)
 	return ac
 }
 
@@ -144,6 +136,12 @@ func (ac *ArticleCreate) check() error {
 	if _, ok := ac.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Article.created_at"`)}
 	}
+	if _, ok := ac.mutation.AuthorID(); !ok {
+		return &ValidationError{Name: "author_id", err: errors.New(`ent: missing required field "Article.author_id"`)}
+	}
+	if _, ok := ac.mutation.AuthorID(); !ok {
+		return &ValidationError{Name: "author", err: errors.New(`ent: missing required edge "Article.author"`)}
+	}
 	return nil
 }
 
@@ -196,7 +194,7 @@ func (ac *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_articles = &nodes[0]
+		_node.AuthorID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ac.mutation.CommentsIDs(); len(nodes) > 0 {

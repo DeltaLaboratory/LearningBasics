@@ -1,15 +1,16 @@
 <script lang="ts">
     import {onMount} from "svelte";
     import {register} from "$lib/api";
+    import {goto} from "$app/navigation";
 
     let userId = "";
     let password = "";
 
-    let registerResult = "";
-
     async function _page_register() {
         try {
-            registerResult = await register(userId, password)
+            await register(userId, password)
+            alert("Register Success, Please Login")
+            await goto("/login")
         } catch (e) {
             alert(e)
         }

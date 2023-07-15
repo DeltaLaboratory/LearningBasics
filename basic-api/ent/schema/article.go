@@ -20,6 +20,8 @@ func (Article) Fields() []ent.Field {
 		field.String("content").NotEmpty().Sensitive(),
 
 		field.Time("created_at").Default(time.Now),
+
+		field.Int("author_id"),
 	}
 }
 
@@ -27,7 +29,9 @@ func (Article) Fields() []ent.Field {
 func (Article) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("author", User.Type).
+			Field("author_id").
 			Ref("articles").
+			Required().
 			Unique(),
 		edge.To("comments", Comment.Type),
 	}

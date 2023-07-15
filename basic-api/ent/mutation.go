@@ -257,9 +257,40 @@ func (m *ArticleMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
-// SetAuthorID sets the "author" edge to the User entity by id.
-func (m *ArticleMutation) SetAuthorID(id int) {
-	m.author = &id
+// SetAuthorID sets the "author_id" field.
+func (m *ArticleMutation) SetAuthorID(i int) {
+	m.author = &i
+}
+
+// AuthorID returns the value of the "author_id" field in the mutation.
+func (m *ArticleMutation) AuthorID() (r int, exists bool) {
+	v := m.author
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthorID returns the old "author_id" field's value of the Article entity.
+// If the Article object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleMutation) OldAuthorID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthorID: %w", err)
+	}
+	return oldValue.AuthorID, nil
+}
+
+// ResetAuthorID resets all changes to the "author_id" field.
+func (m *ArticleMutation) ResetAuthorID() {
+	m.author = nil
 }
 
 // ClearAuthor clears the "author" edge to the User entity.
@@ -270,14 +301,6 @@ func (m *ArticleMutation) ClearAuthor() {
 // AuthorCleared reports if the "author" edge to the User entity was cleared.
 func (m *ArticleMutation) AuthorCleared() bool {
 	return m.clearedauthor
-}
-
-// AuthorID returns the "author" edge ID in the mutation.
-func (m *ArticleMutation) AuthorID() (id int, exists bool) {
-	if m.author != nil {
-		return *m.author, true
-	}
-	return
 }
 
 // AuthorIDs returns the "author" edge IDs in the mutation.
@@ -384,7 +407,7 @@ func (m *ArticleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ArticleMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.title != nil {
 		fields = append(fields, article.FieldTitle)
 	}
@@ -393,6 +416,9 @@ func (m *ArticleMutation) Fields() []string {
 	}
 	if m.created_at != nil {
 		fields = append(fields, article.FieldCreatedAt)
+	}
+	if m.author != nil {
+		fields = append(fields, article.FieldAuthorID)
 	}
 	return fields
 }
@@ -408,6 +434,8 @@ func (m *ArticleMutation) Field(name string) (ent.Value, bool) {
 		return m.Content()
 	case article.FieldCreatedAt:
 		return m.CreatedAt()
+	case article.FieldAuthorID:
+		return m.AuthorID()
 	}
 	return nil, false
 }
@@ -423,6 +451,8 @@ func (m *ArticleMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldContent(ctx)
 	case article.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
+	case article.FieldAuthorID:
+		return m.OldAuthorID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Article field %s", name)
 }
@@ -453,6 +483,13 @@ func (m *ArticleMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCreatedAt(v)
 		return nil
+	case article.FieldAuthorID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthorID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Article field %s", name)
 }
@@ -460,13 +497,16 @@ func (m *ArticleMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ArticleMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ArticleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
 	return nil, false
 }
 
@@ -510,6 +550,9 @@ func (m *ArticleMutation) ResetField(name string) error {
 		return nil
 	case article.FieldCreatedAt:
 		m.ResetCreatedAt()
+		return nil
+	case article.FieldAuthorID:
+		m.ResetAuthorID()
 		return nil
 	}
 	return fmt.Errorf("unknown Article field %s", name)

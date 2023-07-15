@@ -24,11 +24,12 @@ type Article struct {
 	Content string `json:"-"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// AuthorID holds the value of the "author_id" field.
+	AuthorID int `json:"author_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ArticleQuery when eager-loading is set.
-	Edges         ArticleEdges `json:"edges"`
-	user_articles *int
-	selectValues  sql.SelectValues
+	Edges        ArticleEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // ArticleEdges holds the relations/edges for other nodes in the graph.
@@ -69,14 +70,12 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case article.FieldID:
+		case article.FieldID, article.FieldAuthorID:
 			values[i] = new(sql.NullInt64)
 		case article.FieldTitle, article.FieldContent:
 			values[i] = new(sql.NullString)
 		case article.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
-		case article.ForeignKeys[0]: // user_articles
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -116,12 +115,11 @@ func (a *Article) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				a.CreatedAt = value.Time
 			}
-		case article.ForeignKeys[0]:
+		case article.FieldAuthorID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_articles", value)
+				return fmt.Errorf("unexpected type %T for field author_id", values[i])
 			} else if value.Valid {
-				a.user_articles = new(int)
-				*a.user_articles = int(value.Int64)
+				a.AuthorID = int(value.Int64)
 			}
 		default:
 			a.selectValues.Set(columns[i], values[i])
@@ -176,6 +174,9 @@ func (a *Article) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(a.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("author_id=")
+	builder.WriteString(fmt.Sprintf("%v", a.AuthorID))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -56,17 +56,9 @@ func (au *ArticleUpdate) SetNillableCreatedAt(t *time.Time) *ArticleUpdate {
 	return au
 }
 
-// SetAuthorID sets the "author" edge to the User entity by ID.
-func (au *ArticleUpdate) SetAuthorID(id int) *ArticleUpdate {
-	au.mutation.SetAuthorID(id)
-	return au
-}
-
-// SetNillableAuthorID sets the "author" edge to the User entity by ID if the given value is not nil.
-func (au *ArticleUpdate) SetNillableAuthorID(id *int) *ArticleUpdate {
-	if id != nil {
-		au = au.SetAuthorID(*id)
-	}
+// SetAuthorID sets the "author_id" field.
+func (au *ArticleUpdate) SetAuthorID(i int) *ArticleUpdate {
+	au.mutation.SetAuthorID(i)
 	return au
 }
 
@@ -160,6 +152,9 @@ func (au *ArticleUpdate) check() error {
 		if err := article.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "Article.content": %w`, err)}
 		}
+	}
+	if _, ok := au.mutation.AuthorID(); au.mutation.AuthorCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "Article.author"`)
 	}
 	return nil
 }
@@ -305,17 +300,9 @@ func (auo *ArticleUpdateOne) SetNillableCreatedAt(t *time.Time) *ArticleUpdateOn
 	return auo
 }
 
-// SetAuthorID sets the "author" edge to the User entity by ID.
-func (auo *ArticleUpdateOne) SetAuthorID(id int) *ArticleUpdateOne {
-	auo.mutation.SetAuthorID(id)
-	return auo
-}
-
-// SetNillableAuthorID sets the "author" edge to the User entity by ID if the given value is not nil.
-func (auo *ArticleUpdateOne) SetNillableAuthorID(id *int) *ArticleUpdateOne {
-	if id != nil {
-		auo = auo.SetAuthorID(*id)
-	}
+// SetAuthorID sets the "author_id" field.
+func (auo *ArticleUpdateOne) SetAuthorID(i int) *ArticleUpdateOne {
+	auo.mutation.SetAuthorID(i)
 	return auo
 }
 
@@ -422,6 +409,9 @@ func (auo *ArticleUpdateOne) check() error {
 		if err := article.ContentValidator(v); err != nil {
 			return &ValidationError{Name: "content", err: fmt.Errorf(`ent: validator failed for field "Article.content": %w`, err)}
 		}
+	}
+	if _, ok := auo.mutation.AuthorID(); auo.mutation.AuthorCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "Article.author"`)
 	}
 	return nil
 }
