@@ -8,6 +8,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.47.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/mattn/go-sqlite3 v1.14.17
+	github.com/rs/zerolog v1.29.1
 	golang.org/x/crypto v0.11.0
 )
 
