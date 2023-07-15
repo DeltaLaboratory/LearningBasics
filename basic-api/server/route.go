@@ -17,12 +17,12 @@ func (server *Server) route() {
 	{
 		articles.Get("/", server.listArticle)
 		articles.Get("/:id", server.getArticle)
+		articles.Get("/:id/comments", server.listComment)
 
 		authorized := articles.Group("")
 		authorized.Use(server.authorized)
 		{
 			authorized.Post("/", server.createArticle)
-			authorized.Get("/:id/comments", server.listComment)
 			authorized.Post("/:id/comments", server.createComment)
 		}
 	}
