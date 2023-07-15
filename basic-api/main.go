@@ -15,6 +15,7 @@ import (
 
 	"basicapi/ent"
 	"basicapi/ent/article"
+	"basicapi/ent/comment"
 	"basicapi/ent/user"
 	tool "basicapi/internal"
 )
@@ -67,8 +68,9 @@ func main() {
 		AllowOrigins: "*",
 	}))
 
-	server.app.Use(func(c *fiber.Ctx) {
+	server.app.Use(func(c *fiber.Ctx) error {
 		c.Locals("server", &server)
+		return c.Next()
 	})
 
 	server.app.Post("/account/register", func(ctx *fiber.Ctx) error {
@@ -158,6 +160,74 @@ func main() {
 		}
 	})
 
+	server.app.Get("/articles/:id", func(ctx *fiber.Ctx) error {
+		articleId, err := ctx.ParamsInt("id")
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		article, err := server.db.Article.Get(ctx.Context(), articleId)
+		if err != nil {
+			if _, ok := err.(*ent.NotFoundError); ok {
+				return ctx.Status(fiber.StatusNotFound).SendString(err.Error())
+			} else {
+				return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			}
+		}
+
+		return ctx.Status(fiber.StatusOK).JSON(GetArticleResponse{
+			Article: article,
+		})
+	})
+
+	server.app.Get("/articles/:id/comments", func(ctx *fiber.Ctx) error {
+		var err error
+		off := ctx.QueryInt("offset", 0)
+
+		var articleId int
+		if articleId, err = ctx.ParamsInt("id"); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		var comments []*ent.Comment
+		if comments, err = server.db.Comment.Query().
+			WithArticle(func(aq *ent.ArticleQuery) {
+				aq.Where(article.ID(articleId))
+			}).
+			Order(comment.ByID(sql.OrderDesc())).
+			Offset(off).
+			Limit(20).
+			All(ctx.Context()); err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		}
+
+		return ctx.Status(fiber.StatusOK).JSON(CommentListResponse{
+			Comments: comments,
+		})
+	})
+
+	server.app.Post("/articles/:id/comments", Authorized, func(ctx *fiber.Ctx) error {
+		var articleId int
+		if articleId, err = ctx.ParamsInt("id"); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		request := new(NewCommentRequest)
+		if err := ctx.BodyParser(&request); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		user := ctx.Locals("user").(*ent.User)
+		if comment, err := server.db.Comment.Create().SetAuthor(user).SetContent(request.Content).SetArticleID(articleId).Save(ctx.Context()); err != nil {
+			return ctx.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		} else {
+			return ctx.Status(fiber.StatusOK).JSON(NewCommentResponse{
+				Comment: comment,
+			})
+		}
+
+	})
+
 	server.app.Listen(":80")
 }
 
@@ -181,4 +251,20 @@ type NewArticleResponse struct {
 
 type ArticleListResponse struct {
 	Articles []*ent.Article `json:"articles"`
+}
+
+type GetArticleResponse struct {
+	Article *ent.Article `json:"article"`
+}
+
+type CommentListResponse struct {
+	Comments []*ent.Comment `json:"comments"`
+}
+
+type NewCommentRequest struct {
+	Content string `json:"content"`
+}
+
+type NewCommentResponse struct {
+	Comment *ent.Comment `json:"comment"`
 }
