@@ -22,6 +22,7 @@ func NewServer(db *ent.Client) *Server {
 			JSONDecoder: json.Unmarshal,
 			JSONEncoder: json.Marshal,
 		}),
+		db: db,
 	}
 }
 
